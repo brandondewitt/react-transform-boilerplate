@@ -1,7 +1,13 @@
+require('./babel.server');
 var path = require('path');
 var express = require('express');
 var webpack = require('webpack');
 var config = require('./webpack.config.dev');
+var api = require('./src/api');
+var httpProxy = require('http-proxy');
+var proxy = httpProxy.createProxyServer({
+  target: 'http://localhost:3030'
+});
 
 var app = express();
 var compiler = webpack(config);
@@ -13,6 +19,10 @@ app.use(require('webpack-dev-middleware')(compiler, {
 
 app.use(require('webpack-hot-middleware')(compiler));
 
+app.use('/api', function (req, res) {
+  proxy.web(req, res);
+});
+
 app.get('*', function(req, res) {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
@@ -22,6 +32,9 @@ app.listen(3000, 'localhost', function(err) {
     console.log(err);
     return;
   }
+
+  api()
+    .then(() => console.log('API listening on http://localhost:3030'));
 
   console.log('Listening at http://localhost:3000');
 });
